@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+
 class WeatherPage extends StatelessWidget {
 static const String id = 'WeatherPage';
   const WeatherPage({super.key});
@@ -7,6 +8,15 @@ static const String id = 'WeatherPage';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: const Text(
+          'Weather',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
