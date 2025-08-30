@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
         LongTermGoalsPage.id: (context) => const LongTermGoalsPage(),
         ShortTermGoalsPage.id: (context) => const ShortTermGoalsPage(),
         SettingsPage.id: (context) => const SettingsPage(),
+        
 
       },
     );
