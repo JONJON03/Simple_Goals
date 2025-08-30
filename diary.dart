@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:simple_goals/homepage.dart';
 
 import 'longterm.dart';
 import 'shortterm.dart';
@@ -10,6 +11,30 @@ class DiaryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: const Text(
+          'Diary',
+          style: TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              iconSize: 20,
+              splashRadius: 20,
+              icon: const Icon(Icons.settings_outlined, color: Colors.white),
+              onPressed: () {
+                Navigator.pushNamed(context, HomePage.id);
+              },
+              tooltip: 'Settings',
+            ),
+          ),
+        ],
+      ),
+
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
