@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ShortTermGoalsPage extends StatefulWidget {
   static const String id = 'ShortTermGoalsPage';
@@ -12,57 +13,128 @@ class _ShortTermGoalsPageState extends State<ShortTermGoalsPage> {
   final List<String> _goals = [];
   String _searchQuery = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadGoals();
+  }
+
+  Future<void> _loadGoals() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String>? savedGoals = prefs.getStringList('shortTermGoals');
+    if (savedGoals != null) {
+      setState(() {
+        _goals.addAll(savedGoals);
+      });
+    }
+  }
+
+  Future<void> _saveGoals() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('shortTermGoals', _goals);
+  }
+
   void _addGoal() {
-    String newGoal = '';
-    showDialog(
+    _showGoalModal();
+  }
+
+  void _editGoal(int index) {
+    _showGoalModal(initialText: _goals[index], editIndex: index);
+  }
+
+  void _showGoalModal({String initialText = '', int? editIndex}) {
+    String goalText = initialText;
+
+    final controller = TextEditingController(text: initialText);
+
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text(
-            'Add Short-Term Goal',
-            style: TextStyle(color: Colors.white),
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 20,
           ),
-          content: TextField(
-            autofocus: true,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Write your goal here...',
-              hintStyle: TextStyle(color: Colors.white54),
-              border: OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.black87,
-            ),
-            onChanged: (value) {
-              newGoal = value;
-            },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                editIndex == null
+                    ? 'Write Your Short-Term Goal'
+                    : 'Edit Your Short-Term Goal',
+                style: const TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                style: const TextStyle(color: Colors.white),
+                maxLines: null,
+                minLines: 10,
+                keyboardType: TextInputType.multiline,
+                decoration: const InputDecoration(
+                  hintText: 'Start writing here like a notepad...',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: Colors.white12,
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                  ),
+                ),
+                onChanged: (value) {
+                  goalText = value;
+                },
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9B51E0),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: () {
+                      if (goalText.trim().isNotEmpty) {
+                        setState(() {
+                          if (editIndex != null) {
+                            _goals[editIndex] = goalText.trim();
+                          } else {
+                            _goals.insert(0, goalText.trim());
+                          }
+                        });
+                        _saveGoals();
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Text(editIndex == null ? 'Save' : 'Update'),
+                  ),
+                ],
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog without adding
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9B51E0),
-              ),
-              onPressed: () {
-                if (newGoal.trim().isNotEmpty) {
-                  setState(() {
-                    _goals.insert(0, newGoal.trim());
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
@@ -72,6 +144,7 @@ class _ShortTermGoalsPageState extends State<ShortTermGoalsPage> {
     setState(() {
       _goals.removeAt(index);
     });
+    _saveGoals();
   }
 
   @override
@@ -101,7 +174,6 @@ class _ShortTermGoalsPageState extends State<ShortTermGoalsPage> {
               style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
             const SizedBox(height: 10),
-
             TextField(
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
@@ -123,7 +195,6 @@ class _ShortTermGoalsPageState extends State<ShortTermGoalsPage> {
               },
             ),
             const SizedBox(height: 20),
-
             Expanded(
               child: filteredGoals.isEmpty
                   ? Center(
@@ -131,7 +202,10 @@ class _ShortTermGoalsPageState extends State<ShortTermGoalsPage> {
                         _goals.isEmpty
                             ? 'No goals yet. Tap + to add one!'
                             : 'No goals match your search.',
-                        style: const TextStyle(color: Colors.white54, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 16,
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -159,40 +233,68 @@ class _ShortTermGoalsPageState extends State<ShortTermGoalsPage> {
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      backgroundColor: Colors.grey[900],
-                                      title: const Text(
-                                        'Delete Goal?',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      content: const Text(
-                                        'Are you sure you want to delete this goal?',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF9B51E0),
-                                          ),
-                                          onPressed: () {
-                                            _deleteGoal(originalIndex);
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
+                              Column(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.amber,
                                     ),
-                                  );
-                                },
+                                    onPressed: () {
+                                      _editGoal(originalIndex);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          backgroundColor: Colors.grey[900],
+                                          title: const Text(
+                                            'Delete Goal?',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          content: const Text(
+                                            'Are you sure you want to delete this goal?',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: const Text(
+                                                'Cancel',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF9B51E0,
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                _deleteGoal(originalIndex);
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('Delete'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
                             ],
                           ),
