@@ -13,56 +13,99 @@ class _QuotesPageState extends State<QuotesPage> {
   String _searchQuery = '';
 
   void _addQuote() {
-    String newQuote = '';
-    showDialog(
+    _showQuoteModal();
+  }
+
+  void _editQuote(int index) {
+    _showQuoteModal(initialText: _quotes[index], editIndex: index);
+  }
+
+  void _showQuoteModal({String initialText = '', int? editIndex}) {
+    String quoteText = initialText;
+    final controller = TextEditingController(text: initialText);
+
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text(
-            'Add Quote',
-            style: TextStyle(color: Colors.white),
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 20,
           ),
-          content: TextField(
-            autofocus: true,
-            style: const TextStyle(color: Colors.white),
-            maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Write your quote here...',
-              hintStyle: TextStyle(color: Colors.white54),
-              border: OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.black87,
-            ),
-            onChanged: (value) {
-              newQuote = value;
-            },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                editIndex == null ? 'Add Quote' : 'Edit Quote',
+                style: const TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                style: const TextStyle(color: Colors.white),
+                maxLines: null,
+                minLines: 6,
+                decoration: const InputDecoration(
+                  hintText: 'Write your quote here...',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  filled: true,
+                  fillColor: Colors.white12,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(15)),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (value) => quoteText = value,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9B51E0),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 20,
+                      ),
+                    ),
+                    onPressed: () {
+                      if (quoteText.trim().isNotEmpty) {
+                        setState(() {
+                          if (editIndex != null) {
+                            _quotes[editIndex] = quoteText.trim();
+                          } else {
+                            _quotes.insert(0, quoteText.trim());
+                          }
+                        });
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Text(editIndex == null ? 'Save' : 'Update'),
+                  ),
+                ],
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog without adding
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white70),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9B51E0),
-              ),
-              onPressed: () {
-                if (newQuote.trim().isNotEmpty) {
-                  setState(() {
-                    _quotes.insert(0, newQuote.trim()); // Add to top (recent)
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       },
     );
@@ -76,7 +119,6 @@ class _QuotesPageState extends State<QuotesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Filter quotes by search query (case insensitive)
     final filteredQuotes = _quotes.where((quote) {
       return quote.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
@@ -96,20 +138,19 @@ class _QuotesPageState extends State<QuotesPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
           children: [
-            // Search Box
             TextField(
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Search',
+                hintText: 'Search quotes',
                 hintStyle: const TextStyle(color: Colors.white70),
                 prefixIcon: const Icon(Icons.search, color: Colors.white70),
                 filled: true,
                 fillColor: Colors.white12,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide.none,
                 ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
               onChanged: (value) {
                 setState(() {
@@ -118,8 +159,6 @@ class _QuotesPageState extends State<QuotesPage> {
               },
             ),
             const SizedBox(height: 20),
-
-            // Quotes list
             Expanded(
               child: filteredQuotes.isEmpty
                   ? Center(
@@ -127,15 +166,16 @@ class _QuotesPageState extends State<QuotesPage> {
                         _quotes.isEmpty
                             ? 'No quotes yet. Tap + to add one!'
                             : 'No quotes match your search.',
-                        style: const TextStyle(color: Colors.white54, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 16,
+                        ),
                       ),
                     )
                   : ListView.builder(
                       itemCount: filteredQuotes.length,
                       itemBuilder: (context, filteredIndex) {
                         final quote = filteredQuotes[filteredIndex];
-
-                        // Need to find original index in _quotes to delete properly
                         final originalIndex = _quotes.indexOf(quote);
 
                         return Container(
@@ -157,43 +197,66 @@ class _QuotesPageState extends State<QuotesPage> {
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () {
-                                  // Confirm before deleting
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      backgroundColor: Colors.grey[900],
-                                      title: const Text(
-                                        'Delete Quote?',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      content: const Text(
-                                        'Are you sure you want to delete this quote?',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF9B51E0),
-                                          ),
-                                          onPressed: () {
-                                            _deleteQuote(originalIndex);
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
+                              Column(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.amber,
                                     ),
-                                  );
-                                },
+                                    onPressed: () => _editQuote(originalIndex),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          backgroundColor: Colors.grey[900],
+                                          title: const Text(
+                                            'Delete Quote?',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          content: const Text(
+                                            'Are you sure you want to delete this quote?',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: const Text(
+                                                'Cancel',
+                                                style: TextStyle(
+                                                  color: Colors.white70,
+                                                ),
+                                              ),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF9B51E0,
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                _deleteQuote(originalIndex);
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('Delete'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -204,7 +267,6 @@ class _QuotesPageState extends State<QuotesPage> {
           ],
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: _addQuote,
         backgroundColor: const Color(0xFF9B51E0),
